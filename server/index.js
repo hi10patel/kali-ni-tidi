@@ -107,6 +107,23 @@ io.on('connection', (socket) => {
     handleDisconnect(socket, true);
   });
 
+  // A client whose tab was backgrounded (iOS Safari especially) may have missed
+  // broadcasts while suspended. They can call this on visibility-restore to pull
+  // the freshest room + game state for themselves only — no broadcast to others.
+  socket.on('request_state', () => {
+    const meta = socketToRoom[socket.id];
+    if (!meta) return;
+    const room = rooms[meta.roomCode];
+    if (!room) return;
+    socket.emit('room_update', {
+      roomCode: meta.roomCode,
+      ownerId: room.ownerId,
+      players: room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),
+      gameStarted: !!room.game,
+    });
+    if (room.game) socket.emit('game_state', room.game.view(meta.playerId));
+  });
+
   socket.on('start_game', (_payload, ack) => {
     const meta = socketToRoom[socket.id];
     if (!meta) return ackErr(ack, 'Not in a room');

@@ -50,9 +50,33 @@ export default function Room() {
       attach();
     }
 
+    // iOS Safari (and to a lesser extent Android Chrome) suspends WebSockets
+    // when the tab is backgrounded or the screen turns off. When the user comes
+    // back, the socket may LOOK connected but actually have missed broadcasts
+    // while suspended. We force a state refresh on every visibility-restore.
+    function resync(reason) {
+      if (cancelled) return;
+      if (!socket.connected) {
+        // Underlying socket is dead — let socket.io reconnect, which fires
+        // `connect` and triggers attach() below.
+        socket.connect();
+      } else {
+        // Socket alive but state might be stale — ask the server for a fresh view.
+        socket.emit('request_state');
+      }
+    }
+    function onVisible() {
+      if (document.visibilityState === 'visible') resync('visibility');
+    }
+    function onFocus()    { resync('focus'); }
+    function onPageShow() { resync('pageshow'); }
+
     socket.on('room_update', onRoomUpdate);
     socket.on('game_state', onGameState);
     socket.on('connect', onConnect);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onPageShow);
 
     if (socket.connected) attach();
 
@@ -61,6 +85,9 @@ export default function Room() {
       socket.off('room_update', onRoomUpdate);
       socket.off('game_state', onGameState);
       socket.off('connect', onConnect);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, [roomCode]);
 
