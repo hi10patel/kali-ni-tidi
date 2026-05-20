@@ -1,0 +1,18 @@
+{
+  "name": "kali-ni-tidi-server",
+  "version": "1.0.0",
+  "description": "Kali ni Tidi (3 of Spades) — multiplayer game server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
